@@ -1,8 +1,9 @@
 import asyncpg
 import logging
 
-from config import DATABASE_URL
 from datetime import timedelta
+
+from config import DATABASE_URL
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -117,6 +118,7 @@ async def add_genre(pool, name: str):
         logger.error(f"Ошибка при добавлении жанра: {e}")
         raise e
 
+
 async def get_genre_name_by_id(pool, genre_id: int):
     """Получает все жанры из таблицы genres."""
     try:
@@ -128,6 +130,7 @@ async def get_genre_name_by_id(pool, genre_id: int):
     except Exception as e:
         logger.error(f"Ошибка при получении жанров: {e}")
         raise e
+
 
 async def get_genres(pool):
     """Получает все жанры из таблицы genres."""
@@ -334,6 +337,7 @@ async def unsubscribe_genre(pool, user_id: int, genre_name: str):
                 DELETE FROM user_genres WHERE user_id = $1 AND genre_id = $2;
             """, user_id, genre_id)
 
+
 async def unsubscribe_genre_by_id(pool, user_id: int, genre_id: int):
     async with pool.acquire() as conn:
         if genre_id:
@@ -370,6 +374,7 @@ async def unsubscribe_feature(pool, user_id: int, feature_name: str):
             await conn.execute("""
                 DELETE FROM user_features WHERE user_id = $1 AND feature_id = $2;
             """, user_id, feature_id)
+
 
 async def unsubscribe_feature_by_id(pool, user_id: int, feature_id: int):
     async with pool.acquire() as conn:

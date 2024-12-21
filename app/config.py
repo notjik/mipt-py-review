@@ -9,4 +9,4 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 DATABASE_URL = f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}:{os.getenv('POSTGRES_PORT')}/{os.getenv('POSTGRES_DB')}"
-CHROME_DRIVER_PATH = os.getenv('CHROME_DRIVER_PATH')
+WEBDRIVER_PATH = os.getenv('WEBDRIVER_PATH')

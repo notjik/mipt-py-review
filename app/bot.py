@@ -1,11 +1,13 @@
 import asyncio
 import re
 import logging
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.client.default import DefaultBotProperties
 from aiogram.types import Message
 from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
+
 from config import BOT_TOKEN
 from db import add_user, get_users, \
     get_free_games, \
@@ -41,11 +43,24 @@ async def cmd_help(message: Message):
         "Доступные команды:\n"
         "/start - Начать работу с ботом\n"
         "/help - Показать это сообщение\n"
+        "/profile - Посмотреть свои подписки\n"
         "/subscribe - Подписаться на уведомления о раздачах\n"
         "/unsubscribe - Отписаться от уведомлений о раздачах\n"
-        "/free_game - Узнать текущие бесплатные игры"
+        "/free_game - Узнать текущие бесплатные игры\n"
+        "/free_game_from_subscriptions - Узнать текущие бесплатные игры"
     )
     await message.answer(help_text)
+
+
+# Команда /profile
+@dp.message(Command("profile"))
+async def cmd_profile(message: Message):
+    user_genres = await get_user_genres(dp['pool'], message.from_user.id)
+    user_features = await get_user_features(dp['pool'], message.from_user.id)
+    await message.answer(("Ваши подписки\n" +
+                          (("\nЖанры:\n" + "\n".join(user_genres) + "\n") if user_genres else "") +
+                          (("\nОсобенности:\n" + "\n".join(user_features) + "\n") if user_features else "")) \
+                             if user_genres or user_features else "Вы пока ни на что не подписаны")
 
 
 # Команда /subscribe - показывает меню подписок
@@ -148,7 +163,7 @@ async def back_to_menu_subscribe(callback_query: types.CallbackQuery):
     await callback_query.answer()
 
 
-# Обработка кнопки "Назад" для возврата в меню подписок
+# Обработка кнопки "Назад" для возврата в меню отписок
 @dp.callback_query(lambda c: c.data == '_back_to_menu_unsubscribe')
 async def back_to_menu_subscribe(callback_query: types.CallbackQuery):
     await callback_query.message.edit_text("Выберите, от чего хотите отписаться:",
@@ -256,9 +271,9 @@ async def cmd_free_game(message: Message):
         await message.answer("В данный момент бесплатных игр нет.")
 
 
-# Команда /free_game
-@dp.message(Command("free_game_by_subscribe"))
-async def cmd_free_game_by_subscribe(message: Message):
+# Команда /free_game_from_subscriptions
+@dp.message(Command("free_game_from_subscriptions"))
+async def cmd_free_game_from_subscriptions(message: Message):
     games = await get_free_games(dp['pool'])
     user_genres = set(await get_user_genres(dp['pool'], message.from_user.id))  # Подписки по жанрам
     user_features = set(await get_user_features(dp['pool'], message.from_user.id))  # Подписки по особенностям
@@ -267,15 +282,17 @@ async def cmd_free_game_by_subscribe(message: Message):
     for game in games:
         if set(game['genres']) & user_genres or set(game['features']) & user_features:
             likely_games.append(
-                "- <a href='{game['link']}'>{game['name']}</a> бесплатно до {game['end_time']} по МСК\n")
+                f"- <a href='{game['link']}'>{game['name']}</a> бесплатно до {game['end_time']} по МСК\n")
     await message.answer(
         message_text + ''.join(likely_games) if likely_games else "В данный момент бесплатных игр нет.")
 
 
+# Уведомление пользователей
 async def notify_subscribers(pool):
+    # Запоминаем все игры на старте
     previous_games = set((game['name'], game['link'], game['end_time'], frozenset(game['genres']),
                           frozenset(game['features'])) for game in await get_free_games(pool))
-
+    # Бесконечный цикл для постоянной проверки
     while True:
         # Получаем список бесплатных игр с жанрами и особенностями
         games = await get_free_games(pool)

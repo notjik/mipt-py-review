@@ -1,5 +1,6 @@
 import asyncio
 import logging
+
 from db import init_db_pool, init_db
 from bot import notify_subscribers, dp, bot
 from scraper import scrape_categories, schedule_scrape_free_games, schedule_scrape_categories

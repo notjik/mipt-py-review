@@ -4,9 +4,10 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 # Клавиатура с командами
 def get_main_keyboard():
     keyboard = [
+        [KeyboardButton(text="/profile")],
         [KeyboardButton(text="/help")],
         [KeyboardButton(text="/subscribe"), KeyboardButton(text="/unsubscribe")],
-        [KeyboardButton(text="/free_game"), KeyboardButton(text="/free_game_by_subscribe")]
+        [KeyboardButton(text="/free_game"), KeyboardButton(text="/free_game_from_subscriptions")]
     ]
     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
 

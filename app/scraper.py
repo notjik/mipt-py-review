@@ -11,8 +11,12 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
-from config import CHROME_DRIVER_PATH
+from config import WEBDRIVER_PATH
 from db import save_games, add_genre, add_feature
+
+
+def make_driver():
+    return webdriver.Chrome(service=Service(WEBDRIVER_PATH), options=get_options())
 
 
 def get_options():
@@ -45,8 +49,7 @@ def emulate_user(driver):
 
 async def scrape_free_games(pool):
     url = "https://store.epicgames.com/ru/free-games"
-    driver_path = CHROME_DRIVER_PATH
-    driver = webdriver.Chrome(service=Service(driver_path), options=get_options())
+    driver = make_driver()
     games = []
     try:
         driver.get(url)
@@ -95,8 +98,7 @@ async def scrape_games_categories(games):
     for game in games:
         url = game['link']
 
-        driver_path = CHROME_DRIVER_PATH
-        driver = webdriver.Chrome(service=Service(driver_path), options=get_options())
+        driver = make_driver()
 
         try:
             driver.get(url)
@@ -107,7 +109,10 @@ async def scrape_games_categories(games):
             soup = BeautifulSoup(html, 'html.parser')
 
             if soup.find(string='Please complete a security check to continue') or \
-                    soup.find(string='This site can’t be reached'):
+                    soup.find(string='This site can’t be reached') or \
+                    soup.find(
+                        string="Этот контент в настоящее время недоступен на вашей платформе или в вашем регионе."
+                    ):
                 raise WebDriverException('Bypass failed')
 
             genres = []
@@ -124,6 +129,8 @@ async def scrape_games_categories(games):
 
             game['genres'] = genres
             game['features'] = features
+        except WebDriverException as e:
+            logging.error(f"WebDriverException occurred during scraping categories free game ({game['link']}): {e}")
         finally:
             driver.quit()
     return games
@@ -131,8 +138,7 @@ async def scrape_games_categories(games):
 
 async def scrape_categories(pool):
     url = "https://store.epicgames.com/ru/browse?sortBy=releaseDate&sortDir=DESC&category=Game&count=40"
-    driver_path = CHROME_DRIVER_PATH
-    driver = webdriver.Chrome(service=Service(driver_path), options=get_options())
+    driver = make_driver()
 
     genres = []
     features = []
