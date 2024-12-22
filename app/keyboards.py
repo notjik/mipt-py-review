@@ -7,7 +7,7 @@ def get_main_keyboard():
         [KeyboardButton(text="/profile")],
         [KeyboardButton(text="/help")],
         [KeyboardButton(text="/subscribe"), KeyboardButton(text="/unsubscribe")],
-        [KeyboardButton(text="/free_game"), KeyboardButton(text="/free_game_from_subscriptions")]
+        [KeyboardButton(text="/free_games"), KeyboardButton(text="/free_games_from_subscriptions")]
     ]
     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
 
@@ -22,13 +22,13 @@ def get_action_keyboard(is_subscribe=True):
     action_text = "Подписаться на" if is_subscribe else "Отписаться от"
     keyboard = InlineKeyboardMarkup(inline_keyboard=[])
     keyboard.inline_keyboard.append(
-        [InlineKeyboardButton(text=f"{action_text} жанр{"ы" if is_subscribe else "ов"}",
+        [InlineKeyboardButton(text=f"{action_text} жанр{'ы' if is_subscribe else 'ов'}",
                               callback_data=f"_page_{action}_genres_1")])
     keyboard.inline_keyboard.append(
-        [InlineKeyboardButton(text=f"{action_text} особенност{"и" if is_subscribe else "ей"}",
+        [InlineKeyboardButton(text=f"{action_text} особенност{'и' if is_subscribe else 'ей'}",
                               callback_data=f"_page_{action}_features_1")])
     keyboard.inline_keyboard.append(
-        [InlineKeyboardButton(text=f"{action_text} все{"" if is_subscribe else "х"}", callback_data=f"_{action}_all")])
+        [InlineKeyboardButton(text=f"{action_text} все{'' if is_subscribe else 'х'}", callback_data=f"_{action}_all")])
     return keyboard
 
 
@@ -41,6 +41,9 @@ def get_genre_keyboard(genres, have_genres, is_subscribe=True, page=1, per_page=
     action = 'subscribe' if is_subscribe else 'unsubscribe'
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[])
+    if genres_to_display:
+        keyboard.inline_keyboard.append(
+            [InlineKeyboardButton(text="Выбрать все жанры", callback_data=f"_{action}_all_genres")])
     for genre in genres_to_display:
         keyboard.inline_keyboard.append(
             [InlineKeyboardButton(text=genre[1], callback_data=f"_{action}_genre_{genre[0]}")])
@@ -63,12 +66,17 @@ def get_genre_keyboard(genres, have_genres, is_subscribe=True, page=1, per_page=
 # Клавиатура для выбора особенностей с пагинацией
 def get_feature_keyboard(features, have_features, is_subscribe=False, page=1, per_page=4):
     start = (page - 1) * per_page
-    remaining_features = ((set(features) - set(have_features)) if is_subscribe else (set(features) & set(have_features)))
+    remaining_features = (
+        (set(features) - set(have_features)) if is_subscribe else (set(features) & set(have_features)))
     end = min(start + per_page, len(remaining_features))
     features_to_display = list(remaining_features)[start:end]
     action = 'subscribe' if is_subscribe else 'unsubscribe'
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[])
+    if features_to_display:
+        keyboard.inline_keyboard.append(
+            [InlineKeyboardButton(text="Выбрать все особенности", callback_data=f"_{action}_all_features")])
+
     for feature in features_to_display:
         keyboard.inline_keyboard.append(
             [InlineKeyboardButton(text=feature[1], callback_data=f"_{action}_feature_{feature[0]}")])

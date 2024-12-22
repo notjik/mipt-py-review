@@ -46,8 +46,8 @@ async def cmd_help(message: Message):
         "/profile - Посмотреть свои подписки\n"
         "/subscribe - Подписаться на уведомления о раздачах\n"
         "/unsubscribe - Отписаться от уведомлений о раздачах\n"
-        "/free_game - Узнать текущие бесплатные игры\n"
-        "/free_game_from_subscriptions - Узнать текущие бесплатные игры"
+        "/free_games - Узнать текущие бесплатные игры\n"
+        "/free_games_from_subscriptions - Узнать текущие бесплатные игры"
     )
     await message.answer(help_text)
 
@@ -136,23 +136,31 @@ async def process_feature_subscription(callback_query: types.CallbackQuery):
 
 
 # Обработка подписки на все жанры и особенности
-@dp.callback_query(lambda c: c.data == '_subscribe_all')
+@dp.callback_query(lambda c: '_subscribe_all' in c.data)
 async def subscribe_all(callback_query: types.CallbackQuery):
     user_id = callback_query.from_user.id
 
-    # Подписка на все жанры
-    genres = await get_genres(dp['pool'])
-    for genre in genres:
-        await subscribe_genre(dp['pool'], user_id, genre)
+    # Пытаемся извлечь страницу из callback_data для пагинации
+    match = re.match(r"_subscribe_all_(\S+)", callback_query.data)
+    category = match.group(1) if match else 'all'
+    if category in ['all', 'genres']:
+        # Подписка на все жанры
+        genres = await get_genres(dp['pool'])
+        for genre in genres:
+            await subscribe_genre(dp['pool'], user_id, genre)
 
-    # Подписка на все особенности
-    features = await get_features(dp['pool'])
-    for feature in features:
-        await subscribe_feature(dp['pool'], user_id, feature)
+    if category in ['all', 'features']:
+        # Подписка на все особенности
+        features = await get_features(dp['pool'])
+        for feature in features:
+            await subscribe_feature(dp['pool'], user_id, feature)
 
-    await callback_query.message.edit_text("Вы подписались на все жанры и особенности!",
+    await callback_query.message.edit_text("Вы подписались на все жанры!" if category == 'genres' else
+                                           "Вы подписались на все особенности!" if category == 'features' else
+                                           "Вы подписались на все жанры и особенности!",
                                            reply_markup=get_void_inline())
     await callback_query.answer()
+
 
 
 # Обработка кнопки "Назад" для возврата в меню подписок
@@ -239,28 +247,35 @@ async def process_feature_unsubscription(callback_query: types.CallbackQuery):
 
 
 # Обработка отписки от всех жанров и особенностей
-@dp.callback_query(lambda c: c.data == '_unsubscribe_all')
+@dp.callback_query(lambda c: '_unsubscribe_all' in c.data)
 async def unsubscribe_all(callback_query: types.CallbackQuery):
     user_id = callback_query.from_user.id
 
-    # Отписка от всех жанров
-    genres = await get_genres(dp['pool'])
-    for genre in genres:
-        await unsubscribe_genre(dp['pool'], user_id, genre)
+    # Пытаемся извлечь страницу из callback_data для пагинации
+    match = re.match(r"_unsubscribe_all_(\S+)", callback_query.data)
+    category = match.group(1) if match else 'all'
+    if category in ['all', 'genres']:
+        # Отписка от всех жанров
+        genres = await get_genres(dp['pool'])
+        for genre in genres:
+            await unsubscribe_genre(dp['pool'], user_id, genre)
 
-    # Отписка от всех особенностей
-    features = await get_features(dp['pool'])
-    for feature in features:
-        await unsubscribe_feature(dp['pool'], user_id, feature)
+    if category in ['all', 'features']:
+        # Отписка от всех особенностей
+        features = await get_features(dp['pool'])
+        for feature in features:
+            await unsubscribe_feature(dp['pool'], user_id, feature)
 
-    await callback_query.message.edit_text("Вы отписались от всех жанров и особенностей!",
+    await callback_query.message.edit_text("Вы отписались от всех жанров!" if category == 'genres' else
+                                           "Вы отписались от всех особенностей!" if category == 'features' else
+                                           "Вы отписались от всех жанров и особенностей!",
                                            reply_markup=get_void_inline())
     await callback_query.answer()
 
 
-# Команда /free_game
-@dp.message(Command("free_game"))
-async def cmd_free_game(message: Message):
+# Команда /free_games
+@dp.message(Command("free_games"))
+async def cmd_free_games(message: Message):
     games = await get_free_games(dp['pool'])
     if games:
         message_text = "Сейчас в раздаче:\n"
@@ -271,9 +286,9 @@ async def cmd_free_game(message: Message):
         await message.answer("В данный момент бесплатных игр нет.")
 
 
-# Команда /free_game_from_subscriptions
-@dp.message(Command("free_game_from_subscriptions"))
-async def cmd_free_game_from_subscriptions(message: Message):
+# Команда /free_games_from_subscriptions
+@dp.message(Command("free_games_from_subscriptions"))
+async def cmd_free_games_from_subscriptions(message: Message):
     games = await get_free_games(dp['pool'])
     user_genres = set(await get_user_genres(dp['pool'], message.from_user.id))  # Подписки по жанрам
     user_features = set(await get_user_features(dp['pool'], message.from_user.id))  # Подписки по особенностям
