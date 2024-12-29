@@ -25,7 +25,8 @@ susu-mipt-py-review/
 │   ├── keyboards.py       # Функции создания клавиатур (Reply, Inline)
 │   ├── main.py            # Основной файл проекта
 │   ├── requirements.txt   # Список зависимостей приложения
-│   └── scraper.py         # Функции скрапинга с Epic Games
+│   ├── scraper.py         # Функции скрапинга с Epic Games
+│   └── webdriver.py       # Файл для работы с webdriver
 ├── .env.example           # Файл с названиями переменных виртуального окружения
 ├── .gitignore             # Файл с перечислением игнорируемых файлов и директорий
 ├── build.sh               # Сценарий запуска проекта
