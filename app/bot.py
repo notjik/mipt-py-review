@@ -18,6 +18,10 @@ from db import add_user, get_users, \
     get_feature_name_by_id, unsubscribe_feature_by_id, unsubscribe_genre_by_id
 from keyboards import *
 
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Инициализация бота
 bot = Bot(
     token=BOT_TOKEN,
@@ -67,6 +71,7 @@ async def cmd_profile(message: Message):
 @dp.message(Command("subscribe"))
 async def cmd_subscribe(message: types.Message):
     await message.answer("Выберите, на что хотите подписаться:", reply_markup=get_action_keyboard(True))
+    await add_user(dp['pool'], message.from_user.id)
 
 
 # Обработка подписки на жанр
@@ -162,7 +167,6 @@ async def subscribe_all(callback_query: types.CallbackQuery):
     await callback_query.answer()
 
 
-
 # Обработка кнопки "Назад" для возврата в меню подписок
 @dp.callback_query(lambda c: c.data == '_back_to_menu_subscribe')
 async def back_to_menu_subscribe(callback_query: types.CallbackQuery):
@@ -183,6 +187,7 @@ async def back_to_menu_subscribe(callback_query: types.CallbackQuery):
 @dp.message(Command("unsubscribe"))
 async def cmd_unsubscribe(message: types.Message):
     await message.answer("Выберите, от чего хотите отписаться:", reply_markup=get_action_keyboard(False))
+    await add_user(dp['pool'], message.from_user.id)
 
 
 # Обработка отписки от жанра
@@ -348,7 +353,7 @@ async def notify_subscribers(pool):
                         await bot.send_message(user_id, message_text)
 
                 except Exception as e:
-                    logging.error(f"Failed to notify user {user_id}: {e}")
+                    logger.error(f"Failed to notify user {user_id}: {e}")
 
             # Обновляем предыдущие игры для следующего сравнения
             previous_games = games_set

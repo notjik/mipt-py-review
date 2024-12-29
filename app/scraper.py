@@ -1,51 +1,16 @@
 import asyncio
 import logging
-import random
-import time
 
 from datetime import datetime
 from bs4 import BeautifulSoup
-from selenium import webdriver
 from selenium.common import WebDriverException
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 
-from config import WEBDRIVER_PATH
 from db import save_games, add_genre, add_feature
+from webdriver import make_driver, emulate_user
 
-
-def make_driver():
-    return webdriver.Chrome(service=Service(WEBDRIVER_PATH), options=get_options())
-
-
-def get_options():
-    options = webdriver.ChromeOptions()
-    user_agents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
-        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:89.0) Gecko/20100101 Firefox/89.0"
-    ]
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--remote-debugging-port=9222")
-    options.add_argument("--disable-extensions")
-    options.add_argument("--disable-software-rasterizer")
-    options.add_argument("window-size=1920,1080")
-    options.add_argument(f"user-agent={random.choice(user_agents)}")
-    return options
-
-
-def emulate_user(driver):
-    time.sleep(3)
-    body = driver.find_element(By.TAG_NAME, 'body')
-    for _ in range(random.randint(3, 5)):
-        body.send_keys(Keys.PAGE_DOWN)
-        time.sleep(random.uniform(1, 3))
-
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 async def scrape_free_games(pool):
     url = "https://store.epicgames.com/ru/free-games"
@@ -75,7 +40,7 @@ async def scrape_free_games(pool):
                 try:
                     end_time = datetime.strptime(end_time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
                 except ValueError:
-                    logging.warning(f"Не удалось распарсить дату: {end_time_str}")
+                    logger.warning(f"Не удалось распарсить дату: {end_time_str}")
 
             if game_name and game_link and end_time:
                 games.append({
@@ -85,12 +50,12 @@ async def scrape_free_games(pool):
                 })
         return games
     except WebDriverException as e:
-        logging.error(f"WebDriverException occurred during scraping free games: {e}")
+        logger.error(f"WebDriverException occurred during scraping free games: {e}")
     finally:
         driver.quit()
         games = await scrape_games_categories(games)
         await save_games(pool, games)
-
+        logger.info(f"End scrape free games")
     return []
 
 
@@ -130,9 +95,10 @@ async def scrape_games_categories(games):
             game['genres'] = genres
             game['features'] = features
         except WebDriverException as e:
-            logging.error(f"WebDriverException occurred during scraping categories free game ({game['link']}): {e}")
+            logger.error(f"WebDriverException occurred during scraping categories free game ({game['link']}): {e}")
         finally:
             driver.quit()
+            logger.info(f"End scrape categories from {game['name']}")
     return games
 
 
@@ -171,29 +137,29 @@ async def scrape_categories(pool):
                 text = item.get_text(strip=True)
                 if text:
                     features.append(text)
-
         return genres, features
     except WebDriverException as e:
-        logging.error(f"WebDriverException occurred during scraping categories: {e}")
+        logger.error(f"WebDriverException occurred during scraping categories: {e}")
     finally:
         driver.quit()
         for genre in genres:
             await add_genre(pool, genre)
         for feature in features:
             await add_feature(pool, feature)
+        logger.info(f"End scrape categories")
     return [], []
 
 
 async def schedule_scrape_free_games(pool):
-    logging.info("Start schedule scraping free-games...")
+    logger.info("Start schedule scraping free-games...")
     games = await scrape_free_games(pool)
-    logging.info("Schedule Scraping free-games is done" if games else "Schedule scraping free-games ended with error")
+    logger.info("Schedule Scraping free-games is done" if games else "Schedule scraping free-games ended with error")
     await asyncio.sleep(1200)
 
 
 async def schedule_scrape_categories(pool):
-    logging.info("Start schedule scraping categories...")
+    logger.info("Start schedule scraping categories...")
     categories = await scrape_categories(pool)
-    logging.info(
+    logger.info(
         "Schedule scraping categories is done" if categories else "Schedule scraping categories ended with error")
     await asyncio.sleep(21600)
